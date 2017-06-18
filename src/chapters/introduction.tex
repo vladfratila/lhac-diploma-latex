@@ -1,0 +1,44 @@
+\chapter{Introduction}
+
+This thesis proposes the architecture and implementation for a home automation solution. The system incorporates both hardware and software components. An embedded system board acts as a central node for data measurement collection and automatic control decisions. It manages an array of wireless sensor boards that offer sensor data retrieval and command of home appliances. I will present a concept application that controls all the components and provides an intuitive user interface for data monitoring and defining smart control profiles.
+
+\section{Motivation}
+
+A research study\cite{microsoft-research} from Microsoft shows that even though the technology required for home automation has been available since the 1970s, wide adoption has not occured. Studies has shown that only 204,000 smart home systems were shipped globally in 2009. The main reason for the low market penetration still is the high cost of the available solutions. The medium price of an installation is \$20,000. One other barrier has been the inflexibility of the solutions available on the market. Most come as a single integrated system with proprietary protocols and components.
+
+In recent years\cite{market-research}, the global market for home automation systems that involve wireless sensors started to grow, reaching \$1.5 billion in 2014. It is expected to grow to \$4.3 billion in 2019, with a compound annual growth rate of 23.7\%. It is a clear expansion that motivates more and more companies to invest in this domain. For example, Google recently announced Brillo\footnote{\url{http://fortune.com/2015/05/28/google-brillo-weaved/}}, an operating system for home automation devices.
+
+Another aspect is the increasing popularity of cheap and versatile embedded systems, aimed at the enthusiast market. The Raspberry Pi \footnote{\url{https://www.raspberrypi.org/products/raspberry-pi-2-model-b/}} costs only \$35 and runs an open-source Linux distribution that allows it to run a wide variety of software. It promotes Python as a primary programming language, targeting even inexperienced programmers which resulted in a great number of Do-It-Yourself (DIY) style projects developed around it.
+
+Finally, wireless communication technologies are being integrated in more and more scenarios. Bluetooth Low Energy (BLE)\footnote{\url{http://www.bluetooth.com/Pages/Bluetooth-Smart.aspx}} is a new standard designed to be used in wireless sensors applications, promising low energy consumption and a resource saving simple protocol stack. Also the WiFi technology is being continuosly improved, aiming to power the development of the Internet of Things.
+
+\section{Related Work}
+
+There are currently two directions in the development of Smart Home products. One offers standalone gadgets aimed at controlling one aspect of the home environment, for example smart thermostats. One popular product is the Nest Thermostat.\footnote{\url{https://nest.com/thermostat/meet-nest-thermostat/}}. The other uses a central control hub that can be extended with multiple peripherals with different functionalities (e.g. temperature control, light, doorlocks). The proposed solution in this paper follows the latter direction, as it is more extensible and versatile.
+
+HomeSeer\footnote{\url{http://www.homesser.com/}}, Control4\footnote{\url{http://www.control4.com/}} and Crestron\footnote{\url{http://www.crestron.com/}} offer the most popular solutions for home automation. Their central home automation controllers run proprietary software, are compatible only with their specific peripherals and often require professional installation. This results in high installation and maintanance costs. They mainly use the ZigBee\footnote{\url{http://www.zigbee.org/}} and Z-wave\footnote{\url{http://www.z-wave.com/}} wireless communication protocols.
+
+The proposed solution - Linux Home Automation Controller, offers a more flexible approach to home automation. The operating system of choice is open source Linux. The software architecture aims to be flexible and extensible with a wide variety of wireless protocols and sensors. The concept application will integrate Bluetooth and WiFi, which are more popular and common. \labelindexref{Table}{table:price} shows a comparison with the cheapest commercial solution, available from HomeSeer. It can be seen that our proposal has lower cost, while offering the same features.
+
+\begin{center}
+\begin{table}[htb]
+  \begin{tabular}{l*{6}{c}r}
+    Solution & Central System & Wireless interface & Wireless Sensor & Software & Total\\
+    \hline
+    Home-Seer & \$200 & \$40 & \$40 & \$250 & \$530\\
+    LHAC & \$80 & \$10 & \$15 & free & \$105\\
+  \end{tabular}
+  \caption{Price comparison with the cheapest comercial solution}
+  \label{table:price}  
+\end{table}
+\end{center}
+
+
+\section{Project Objectives}
+
+This project aims to offer an improved solution to the Home Automation problem. The main objectives are:
+\begin{itemize}
+\item \textbf{Low cost}. A low price point would allow a wider market to be targeted. This will increase the popularity of the Smart Home paradigm and make it more accessible and common.
+\item \textbf{Low resource usage}. This is tightly linked with the \textit{low cost} objective. Embedded system boards are restricted environments that require special attention in order to develop efficient software.
+\item \textbf{Competitivity}. The most important is to obtain a final product that competes with current solutions in terms of functionality and versatility.
+\end{itemize}

@@ -1,0 +1,96 @@
+\chapter{User stories for the Web User Interface}
+\label{app:user-stories}
+
+This appendix details the use case scenarios for the Web User Interface presented in \labelindexref{Subsection}{sub-sec:web-ui}
+
+\section{User authentication}
+
+\textbf{User} - the person who connects to the WebUI of the service
+
+Scenario:
+\begin{enumerate}
+\item The \textbf{user} points a web browser to the WebUI address:port
+\item An authentication form appears
+\item The \textbf{user} inputs username and password
+\item If the username and password are incorrect, the \textbf{user} is redirected to the login page
+\item If the username and password are correct, the \textbf{user} is now authenticated and redirected to the Devices page
+\end{enumerate}
+
+Termination:
+\begin{itemize}
+\item The \textbf{user} presses “LogOff”, or a 30 minute timeout expires.
+\end{itemize}
+
+\section{Devices page}
+
+Device Connect
+\begin{itemize}
+\item The \textbf{user} presses on the “Connect” button of an available \textbf{device}
+\item The system attempts \textbf{device} connection
+\item A dialog box appears, indicating the status of the connection attempt (successful/unsuccessful) and reason
+\item If the connection was successful, the \textbf{device} now appears in the “Connected devices” section
+\end{itemize}
+
+Device Disconnect
+\begin{itemize}
+\item The \textbf{user} presses on the “Disconnect” button of a connected \textbf{device}
+\item The system disconnects from the \textbf{device}
+\item A dialog box appears, indicating the status of the connection attempt (successful/unsuccessful) and reason
+\item If the disconnect was successful, the \textbf{device} now appears in the “Available devices” section
+\end{itemize}
+
+Device Details
+\begin{itemize}
+\item The \textbf{user} presses on the “Details” button of a \textbf{device}
+\item A new window appears, showing:
+\begin{itemize}
+\item \textbf{device} name, MAC Address, status
+\item \textbf{device} description - a detailed description of the \textbf{device}
+\end{itemize}
+\item The \textbf{user} can now close the “Details window”
+\end{itemize}
+
+\section{Data History page}
+
+Current \textbf{device} data values
+\begin{itemize}
+\item The \textbf{user} can scroll the “Device data” page
+\item Each \textbf{device} has it’s own section, displaying current data values that the \textbf{device} can provide.
+\end{itemize}
+
+Data history - useful in fine-tuning the smart profiles
+\begin{itemize}
+\item The \textbf{user} clicks on the desired history duration for a given data
+\item A sub-window appears showing a graph of the desired values
+\end{itemize}
+
+\section{Profile management page}
+
+Create \textbf{profile}
+\begin{itemize}
+\item The \textbf{user} clicks on “Add profile” button in “Profile Management” page
+\item A window to define the \textbf{profile} appears
+\item The \textbf{user} chooses the value from the dropdown to define a schedule for
+\item The \textbf{user} can add (interval, value) tuples to define the desired value in a given time interval.
+\item The \textbf{user} can select a default value that will be targeted when no interval is defined.
+\item “*” - special value that means any data value is acceptable at this point
+\item On each interval change the graph changes to show a preview of the desired preset. The graph has time (a week’s time) on the X axis and the value on the Y axis
+\end{itemize}
+
+Edit \textbf{profile}
+\begin{itemize}
+\item The \textbf{user} clicks on “Edit” for a profile
+\item The window to define the \textbf{profile} appears
+\end{itemize}
+
+Set active \textbf{profile} for a device
+\begin{itemize}
+\item The \textbf{user} checks the radio button from the “Active” column for the desired profile
+\item That \textbf{profile} is now active on the device
+\end{itemize}
+
+Delete \textbf{profile}
+\begin{itemize}
+\item The \textbf{user} clicks on “Delete” for a \textbf{profile}
+\item The \textbf{profile} is deleted
+\end{itemize}

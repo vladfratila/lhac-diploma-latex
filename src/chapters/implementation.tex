@@ -1,0 +1,107 @@
+\chapter{Implementing a Modular Smart Home Server}
+\label{ch:implementation}
+
+This chapter contains details about the implementation of the Linux Home Automation Controller server application. The first three sections will present the components of the back-end side, that handles communication and data-storage logic. \labelindexref{Section}{sec:ui-impl} offers more details about the user interface of the system that connects to the back-end using a REST API. This interface is hosted by a lightweight HTTP server, while the back-end runs as a daemon process, both on the embedded system board.
+
+\section{Device Modules}
+
+All the logic for communicating and controlling a wireless sensor is implemented in a subclass of the \texttt{DeviceModule} class, defined in \texttt{DeviceModule.py}, like in \labelindexref{Listing}{lst:device-module-class}. It is an interface that defines the operations presented in \labelindexref{Subsection}{sub-sec:device-modules-design}. Adding support for a new board is as easy as writing a class that extends \texttt{DeviceModule} and implements it's methods. As an example, in the application, the  \texttt{RN171Module}, \texttt{MRF24Module}, \texttt{RN42Module} and \texttt{RN4020Module} classes handle the four devices presented in \labelindexref{Section}{sec:wireless-sensor-boards}.
+
+The Python language does not have a particular mechanism for defining an abstract class or an interface. They can still be implemented by writing a class that contain methods with an empty body, by using \texttt{pass}. Also specific for Python is that all class method must have as the first argument a reference to the current object: \texttt{self}.
+
+\lstset{language=Python, showstringspaces=false, caption=DeviceModule abstract class definition, label=lst:device-module-class}
+\begin{lstlisting}
+class DeviceModule:
+
+    def scan_available(self):
+        pass
+    def connected_devices(self):
+        pass
+    def connect(self, device):
+        pass
+    def disconnect(self, device):
+        pass
+    def store_current_values(self):
+        pass
+    def do_action(self, device, action):
+        pass
+\end{lstlisting}
+
+Following is a description of the methods, their paramaters and what they return:
+\begin{itemize}
+
+    \item \texttt{scan_available(self)} does a protocol-specific scan for nearby devices that the system can connect to. It returns a list
+    with available devices. There are several mechanisms possible for identifying if a device offers the desired functionality. For Bluetooth, the Service Discovery Protocol (SDP) \abbrev{SDP}{Service Discovery Protocol} can be used for detecting what services are provided by a device. In the case of WiFi, the sensor board could periodically broadcast advertisement UDP packets after associating with the hotspot. Another thing that should be taken in consideration is a timeout for stopping the search process: it should be long enough in order to allow as much devices to be discovered, but it shouldn't affect the interactivity of the system. A value of 3-5 seconds is considered optimal.
+    \item \texttt{connected_devices(self)} returns a list of the devices that are currently connected to the system using this module.
+    \item \texttt{connect(self, device)} tries to initiate and complete a connection to the device received as parameter. There are many possible options for establishing a connection with the device. For Bluetooth, it could be done using a RFCOMM socket, or the GATT protocol. WiFi would use TCP or UDP sockets on specific port numbers. If the connection is successful, this method returns \texttt{True} and the device is added to the internal list of connected devices, otherwise it throws an \texttt{Exception}.
+    \item \texttt{disconnect(self, device)} closes the connection with a device and removes it from the internal list of connected devices.
+    \item \texttt{store_current_values(self)} Iterates through the list of connected devices, reads measurement data from them and uses the \texttt{store_value()} method provided by the data storage module to record the values in the database.
+    \item \texttt{do_action(self, device, action)} sets a command for a connected device, described by the \texttt{action} parameter.
+\end{itemize}
+
+A \texttt{device} is an instance of the \texttt{Device} class. It holds information about an object such as name and address. In order to uniquely identify a device, it's MAC address is used, because both Bluetooth and WiFi use it as a data-layer identifier. In the case of WiFi, the MAC address is not available for the socket API layer. It can be obtained, for example by using an ARP request.
+
+\section{Database System}
+
+The Database System used for storing data is SQLite3\footnote{\url{https://www.sqlite.org/}}. It is often used in embbeded system applications because of some important aspects:
+\begin{itemize}
+\item \textbf{Self-contained} - it requires minimal support from external libraries or from the operating system.
+\item \textbf{Serverless} - it uses files to store the database and runs in the same process as the application, eliminating the client-server communication overhead.
+\item \textbf{Lightweight} - it offers all the features required for the application, without extra functionalities.
+\item \textbf{Support} in the Python standard library.
+\end{itemize}
+
+The functions for interacting with the database are implemented in the \texttt{data_storage.py} file:
+
+\begin{itemize}
+\item \textbf{store_value()} inserts a measurement value in the \texttt{Data_values} table with the current timestamp.
+\item \textbf{get_history()} returns measurement values for a device from an interval of time received as a parameter.
+\end{itemize}
+
+Measurement values from each device is stored periodically, at a given time interval. This is achieved by using a thread that runs the method defined in \labelindexref{Listing}{lst:store-thread}, which is part of the \texttt{DeviceManager} class. It runs in a loop, first iterating over all the \texttt{DeviceModule}s and calling their \texttt{store_current_values()} method. Then it waits for \texttt{log_timeout} seconds; if a signal to stop comes, execution is ended, otherwise the loop continues.
+
+\lstset{language=Python, showstringspaces=false, caption=Data Storage thread method, label=lst:store-thread}
+\begin{lstlisting}
+def store_thread_handle(self):
+    while True:
+        for module in self.device_modules:
+            module.store_current_values()
+
+        if self._stop.wait(self.log_timeout):
+            break
+\end{lstlisting}
+
+\section{REST API}
+
+The REST API component uses Flask to define endpoints for interacting with the system resources. Routes are defined by using the \texttt{route()} decorator to specify what URL will trigger a function. When an URL is accessed, it's function is called, having access to the parameters and the body of the request through a \texttt{request} object. After it is processed, a JSON formatted response is returned. The service runs on TCP port 5000 and offers the following endpoints:
+\begin{itemize}
+  \item \texttt{/available/} is a container-endpoint that triggers a scan for nearby available devices and returns a JSON object containing them in a list.
+  \item \texttt{/available/<address>} is an item-endpoint for the device identified by \textit{address}. For example, the \texttt{action=connect} request parameter can be used for connecting to a device.
+  \item \texttt{/connected/} is a container-endpoint that returns the list of connected devices
+  \item \texttt{/connected/<address>} is an item-endpoint for connected devices identified by \textit{address}. For example, the \texttt{action=data_history} request parameter can be used to obtain a JSON object with a list of measurement data from a certain device.
+
+\end{itemize}
+
+The posibility of an error caused, for example, by a bad request or a device malfunction is also considered. If an exception appears while processing a request, a response is offer, having an appropiate HTTP error code and containg a JSON object with a descriptive message. This message can be displayed by the user interface in order to alert the user about the malfunction.
+
+\section{Web User Interface}
+\label{sec:ui-impl}
+
+The Web User Interface is implemented using a combination of standard web technologies and additional libraries:
+\begin{itemize}
+\item \textbf{HTML} - a markup language for defining web pages
+\item \textbf{CSS} - used to define the look and layout of the elements of a web page.
+\item \textbf{JavaScript, jQuery, Ajax} - JavaScript is the programming language used for Web client-side scripting. The jQuery library simplifies HTML document traversal and manipulation, event handling and doing Ajax requests to the REST API.
+\item \textbf{Bootstrap}\footnote{\url{http://getbootstrap.com/}} - is a HTML/CSS/JS framework that simplifies the development of responsive web pages that also look good on mobile devices.
+\item \textbf{Highcharts} - used for displaying charts of data measurements history.
+\end{itemize}
+
+All the processing is done client-side, in the web browser. There is no need for server-side scripts to generate the pages. This results in lower resource usage on the embedded system and also means that a minimal HTTP server that can serve static file is needed. Lighttpd\footnote{\url{http://www.lighttpd.net/}} proved to be the best choice for this scenario, as it ofers low CPU-usage and memory footprint and ocupies less than 100 KB of filesystem space.
+
+The Web UI is implemented in the following files:
+\begin{itemize}
+\item \textbf{devices.html} is the web page presented in \labelindexref{Figure}{img:devices.pdf}. It allows the user to manage the devices that are connected to the system.
+\item \textbf{devices.js} contains the logic for the \texttt{Devices} page. It performs Ajax requests to the REST API in order to obtain lists of available and connected devices and add them to their respective tables and when the \texttt{Connect} and \texttt{Disconnect} buttons are pressed.
+\item \textbf{data_history.html} is the web page presented in \labelindexref{Figure}{img:data-history.pdf}.
+\item \textbf{data_history.js} contains javascript functions for requesting history data from the REST API and displaying it in charts using \texttt{highcharts}.
+\end{itemize}

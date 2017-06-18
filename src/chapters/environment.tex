@@ -1,0 +1,240 @@
+\chapter{Environment and Setup}
+\label{ch:environment}
+
+This chapter describes the hardware and software environment in which the application will run. The hardware platform consists of a central node: the embedded system board and multiple sensor devices: the wireless sensor boards. I will present the software environment from the operating-system level up to the programming level and libraries.
+
+\section{Embedded System Board}
+\label{sec:routerstation}
+
+The embedded system board is a Ubiquiti Networks RouterStation Pro\footnote{\url{https://wiki.ubnt.com/RouterStation_Pro}}. It has a 680 Mhz Atheros AR7161 MIPS CPU, 128MB DDR memory, 16MB SPI FLASH, a Gigabit Ethernet Port, a 3-port Gigabit Ethernet Switch, 3 MINI-PCI Slots, USB 2.0 Host, SD card port and RS232/dB9 Connector. It is a reference embedded Linux board for SOHO routers\abbrev{SOHO}{Small Office/Home Office}. This means that it can work both as a central node for the application and as an Internet router. 
+
+\subsubsection{Wireless Interfaces}
+
+The fact that it has a USB 2.0 port and 3 MINI-PCI Slot means that multiple wireless interfaces can be added as peripherals. The board must be able to connect to WiFi and Bluetooth wireless sensors, so I chose to use a USB adapter for each interface and connect them both to the board through a USB Hub. One important thing that I had to take in consideration when choosing them was support in the Linux Kernel drivers for their specific chipset.
+
+For the WiFi interface I use an Edimax EW-7711UAn USB adapter\footnote{\url{http://www.edimax.com/edimax/merchandise/merchandise_detail/data/edimax/global/wireless_adapters_n150/ew-7711uan}}. It complies with 802.11b/g/n standards, supports 64/128 bit WEP, WPA and WPA2 encryption and has a 3dBi rotatable antenna for extended coverage. The chipset is a Ralink RT3070.
+
+The Bluetooth adapter is a LM-Technologies LM506 Bluetooth 4.0 USB adapter\footnote{\url{http://lm-technologies.com/wireless-adapters/lm506-class-1-bluetooth-4-0-usb-adapter/}}. It combines Classic Bluetooth 2.0, 2.1 and 3.0 EDR standards along with the Bluetooth Low Energy (BLE) SMART standard\abbrev{BLE}{Bluetooth Low Energy}. It was important for it to support both Classic Bluetooth and BLE, in order to be able to connect to the two Bluetooth sensor boards. This adapter uses a Broadcom BCM20702 chipset.
+
+\section{Wireless Sensor Boards}
+\label{sec:wireless-sensor-boards}
+
+Wireless sensor boards are small microcontroller-based platforms. They have analog IO ports that can be used to read data parameters from the home environment (temperature, light intensity, gas concentration, etc.). Digital ports connected to relays can control the functioning of home appliances such as: light bulbs, heating unit, electrical door locks, etc. The sensor boards have a wireless interface that allows them to be controlled through a specific protocol. In order to show the versatility of the solution, I chose to integrate 2 WiFi sensor boards and 2 Bluetooth sensor boards. I will present them in greater detail in the following subsections.
+
+\subsection{WiFi Boards}
+
+\subsubsection{RN-171-XV}
+\label{sub-sub-sec:RN-171-XV}
+
+The Microchip RN-171-XV Wireless LAN Module\footnote{\url{http://ww1.microchip.com/downloads/en/DeviceDoc/rn-171-xv-ds-v1.04r.pdf}} is based on Roving Networks' RN-171 WiFi Module. It supports 802.11 b/g radio, complete TCP/IP networking stack, secure WiFi authentication via WEP, WPA-PSK (TKIP), and WPA2-PSK and has a 32-bit SPARC processor, a real-time clock, a crypto accelerator and power management unit. It offers control and sensor reading through 8 general purpose digital I/O (GPIO) pins and 3 analog sensor interfaces. \abbrev{GPIO}{General Purpose Input Output}. 
+
+The module is pin compatible with the widely used 2 x 10 2-mm socket typically used by 802.15.4 applications, so I connected it to a Microchip RN-XV Dual Relay Evaluation Board \footnote{\url{http://www.microchip.com/DevelopmentTools/ProductDetails.aspx?PartNO=RN-XV-RD2}}, that has this type of socket. It is a reference design for evaluating the RN-171-XV module. This board has a built-in temperature sensor, 2 10-amps relays capable of switching up to 240V and a USB port that can be used to connect to a computer for programming the module over an UART serial interface. The temperature sensor is connected between the SEN5 pin of the module and ground. A 300 ohms resistor was added between 3.3V and SEN5 in order to be able to make a measurement. Schematics and more information about the evaluation board can be found in the datasheet\cite{ev-board-datasheet}.
+
+The module can be controlled and configured by using an WiFly command protocol over a TCP connection. The user's guide\cite{wiFly-ref} offers more information about it. Sensor data can be read from an UDP packet that the board sends periodically to the central node.
+
+\subsubsection{MRF24}
+
+The Microchip WiFi Comm Demo Board\footnote{\url{http://www.microchip.com/Developmenttools/ProductDetails.aspx?PartNO=DV102411}} is a compact development platform for evaluation of the MRF24WB0MA WiFi module. It supports 802.11b/g/n radio and WEP, WPA and WPA2 security protocols. Power is provided by 2 AAA batteries and the onboard PIC32 MCU can be programmed to read and transmit sensor data read from the analog ports.
+
+I used it with a LM335 temperature sensor and a light sensor connected to the analog ports like in \labelindexref{Figure}{img:mrf24-sensors}. The onboard MCU is programmed to read the values from these sensors and send them periodically to the central node through UDP packets.
+
+\subsection{Bluetooth Boards}
+
+\subsubsection{RN42}
+
+Microchip RN42XV\footnote{\url{http://ww1.microchip.com/downloads/en/DeviceDoc/RN41XV-RN42XV-ds-v1.0r.pdf}} is a Bluetooth 2.1 data module, backwards-compatible with Bluetooth version 2.0, 1.2 and 1.1. It has 8 GPIO pins and uses the same socket footprint as \labelref{RN-171-XV}{sub-sub-sec:RN-171-XV}. This means that it can also be used with the Microchip RN-XV Dual Relay Evaluation Board. It can control one of the relays through pin GPIO11.
+
+A wireless Bluetooth connection to the board can be established through SPP (Serial Port Profile) or RFCOMM (Radio Frequency Communication) sockets. RFCOMM sockets provide the same service and reliabiltiy guarantees as TCP sockets. A simple ASCII command language is used to configure the module and control the GPIO pins. A detailed description of this language can be found in the advanced user's guide\cite{bt-command-user-guide}.
+
+\subsubsection{RN4020}
+Microchip RN4020 PICtail Board\footnote{\url{http://www.microchip.com/DevelopmentTools/ProductDetails.aspx?PartNO=rn-4020-pictail}} is a Bluetooth Low Energy demonstration board that uses the Microchip RN4020 module\footnote{\url{http://ww1.microchip.com/downloads/en/DeviceDoc/50002279A.pdf}}, which is a fully-certified Bluetooth Version 4.1 low energy module for low power wireless sensor and controller applications. The board also includes an extreme Low Power PIC18F25K50\footnote{\url{http://ww1.microchip.com/downloads/en/DeviceDoc/30684A.pdf}} that can be programmed and configured to offer control to 4 GPIO pins and 3 analog sensor pins.
+
+The Bluetooth protocol used by this module is Generic Attribute Profile (GATT)\footnote{\url{https://developer.bluetooth.org/TechnologyOverview/Pages/GATT.aspx}}, which is specifically designed for data collection from low power sensor devices.\abbrev{GATT}{Generic Attribute Profile} The protocol, available in the Bluetooth 4.1 Low Energy specification, is focused on minimising the power consumption generated by wireless data transmissions, promising a battery-life of a few months up to a year. This comes at the cost of a low maximum data rate of 1 Mbps, which is more than enough for the use case of this application. Reading sensor data values and sending control commands for the relays only needs a few bytes to be transmitted at intervals of seconds or minutes.
+
+GATT defines the way that two BLE devices transfer data back and forth using a concept called \textit{Characteristics} and a client-server architecture. In our case, RN4020 has the server role and the central node is a client. A Characteristic encapsulates a single data point, such as a temperature value and is uniquely identified by using a 128-bit Universally Unique Identifier (UUID).\abbrev{UUID}{Universally Unique Identifier} On a device, each characteristic value is addressed by a 16-bit \textit{handle} that can be used to read or write that value. The module can be programmed by using a small scripting language that defines a way of reading and writing values from input/output ports and characteristics.
+
+\subsubsection{RN4020 Configuration and Setup}
+
+I configured this module to work as a sensor for temperature and as a controller for a heating unit, by using an electrical relay. The temperature sensor was connected to the A0 analog port like in \labelindexref{Figure}{img:rn4020-sensor}
+
+The protocol for reading temperature data from the sensor has 2 steps:
+\begin{enumerate}
+  \item The board microcontroller periodically reads the sensor value from port A0 and writes it to the handle of the temperature characteristic. \labelref{Listing}{lst:rn4020-script} shows how it can be programmed to do this step.
+  \item The GATT client(the central node) reads the temperature data from the handle of the temperature characteristic.
+\end{enumerate}
+
+\lstset{caption=Script for programming the RN4020 module to provide temperature data, label=lst:rn4020-script}
+\begin{lstlisting}
+@CONN
+# set timer 1 to be 5 seconds
+SM,1,00500000
+@TMR1
+# read AIO0
+$VAR1 = @I,0
+# set handle 0x000B to the AIO0 value
+SHW,000B,$VAR1
+# restart timer
+SM,1,00500000
+\end{lstlisting}
+
+\section{Operating System}
+
+The RouterStation Pro comes preinstalled with OpenWrt\footnote{\url{https://openwrt.org/}}, a Linux distribution for embedded devices. It is mostly maintained by enthusiasts and it's main goal is to allow the customisation of SOHO WiFi internet routers by replacing the proprietary operating system that they have installed by default. While it can be a good choice for adding some extra features to such devices, it wasn't the best choice for this application. Driver support for Bluetooth adapters is not very good and the software repository\footnote{\url{https://downloads.openwrt.org/barrier_breaker/14.07/ar71xx/generic/packages/packages/}} contains a small number of software packages: 859. A better solution exists and that is Yocto.
+
+\subsection{The Yocto Project}
+
+The Yocto Project is an open source collaboration project that provides templates, tools and methods to help create custom Linux-based systems for embedded products regardless of the hardware architecture. It was founded in 2010 as a collaboration among many hardware manufacturers, open-source operating systems vendors, and electronics companies\cite{about-yocto}. Some of those companies are industry leaders, such as Intel, Freescale Semiconductor or Broadcom\footnote{\url{https://www.yoctoproject.org/ecosystem/member-organizations}}. The main features of Yocto are:
+\begin{itemize}
+\item \textbf{Customisable}. The \textit{Poky} build system offers control over every software and library that is integrated into an image. Thousands of software packages are available, using all kinds of programming languages and runtime environments such as C/C++, Perl, Python, Java, Mono.
+\item \textbf{Wide hardware support}. The fact that it is backed by most companies means that Yocto images can be generated for a large number of embedded boards. All major processor architectures are supported: ARM, PPC, MIPS, x86, and x86-64. Porting from one architecture to another is easily done by changing a single line in a configuration file.
+\item \textbf{Application development tools}. The project also mantains a great collection of development tools for debugging, performance and power analysis, environment emulation and application deployment.
+\item \textbf{Good documentation and support}. The official documentation\footnote{\url{https://www.yoctoproject.org/documentation}} is very detailed and easy to understand. Solutions to specific problems can be found on multiple forums and mailing lists.
+\end{itemize}
+
+\subsection{Yocto Project Components}
+
+This subsection will describe the main components of the Yocto Project environment. It is a modular system that was build by integrating a number of deployment and configuration tools such as: Poky, Bitbake, OpenEmbedded.
+
+\subsubsection{Poky}
+
+All components of the Yocto Project are part of the \textit{Poky} build system. They all work togheter in order to define all the details needed to generate the system image. These are:
+\begin{itemize}
+  \item \textbf{Bitbake} - a task executor and scheduler. It executes all building tasks according to provided \textit{metadata}
+  \item \textbf{Metadata files} - provides definitions and customisation for the build steps. There are several types:
+  \begin{itemize}
+    \item \textbf{Recipes(.bb)} - the logical units of software/images to build
+    \item \textbf{Configuration files(.conf)} - they provide global definitions of the environment
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{Bitbake}
+
+Bitbake is the system that executes all the tasks that are necessary for building: fetch source files, apply patches, compile, package generation and image creation. This whole process is called \textit{baking} and it follows steps described in recipes.
+
+\subsubsection{Recipes}
+
+A recipe is a set of instructions for building packages. They include informations about:
+\begin{itemize}
+  \item Where to obtain the upstream sources and what patches to apply.
+  \item Software Licensing.
+  \item Dependencies on libraries or other recipes.
+  \item Configuration and compilation options.
+  \item Destination of files in output packages.
+\end{itemize}
+
+A recipe is defined in a \textbf{.bb} file. If someone wants to modifity it, they can do so by specifing the necessary changes in a \textbf{.bbappend} file. This allows for an easy customisation of details such as specific compilation options and changing install location or configuration files, without modifying the original \textbf{.bb} files. Recipes are organized together in layers.
+
+\subsubsection{Layers}
+
+A layer is a logical collection of recipes representing the core, a Board Support Package (BSP), or an application stack. More specifically, they are a hierarchy of folders that contain recipes and configuration files. 
+
+A BSP defines how to support a particular hardware device, set of devices, or hardware platform. It includes information about the hardware features present on the device and kernel configuration information along with any additional hardware drivers required. Application stacks group packages in specific categories: networking, filesystems, graphics, etc.
+
+\subsubsection{Bitbake Configuration files}
+
+All bitbake commands for baking recipes must be run in a specific building environment. This environment is created by running the \texttt{source oe-init-build-env} command in the \texttt{poky} folder. The command sets up the folders and baking parameters by reading configurations from 2 files:
+\begin{itemize}
+  \item \texttt{local.conf} This files specifies options such as: target machine, download, build and output folders, package type and some other advanced configurations.
+  \item \texttt{bblayers.conf} This file defines the location of the layers that will be used in the baking process.
+\end{itemize}
+
+\subsection{Building a Linux Image using Yocto}
+
+The last subsection presented the tools that Yocto uses in order to compile software and build system images. In this subsection I will present the steps that I took for generating a Yocto distribution for my Linux Home Automation Controller application. Because it runs in an embedded environment, there are some constraints on the flash space and resources available. Yocto offers great control over the components that get integrated and allowed me to generate a system image that respects those constraints.
+
+\subsubsection{Layers and Recipes}
+
+I created a layer called \texttt{meta-lhac} that contains all the recipes that I specified. It depends on the following layers:
+\begin{itemize}
+  \item \texttt{meta} and \texttt{meta-yocto} - these are the default Yocto layers.
+  \item \texttt{meta-yocto-bsp} from the Poky repository\footnote{\url{https://git.yoctoproject.org/cgit/cgit.cgi/poky/}}. It defines the BSP for the RouterStation Pro board.
+  \item \texttt{meta-oe}, \texttt{meta-python}, \texttt{meta-networking} from the OpenEmbedded repository\footnote{\url{http://cgit.openembedded.org/meta-openembedded/}}.
+\end{itemize}
+
+Some of the Python libraries that the application depends on did not have recipes defined in any of those layers. This meant that I had to create recipes that specified how they can be downloaded and what dependencies they have. In \labelref{Appendix A}{lst:pybluez-recipe}, I included the contents of \texttt{python-pybluez_0.21.bb}, a recipe that installs the PyBluez Python Library. It defines several variables that describe the installation parameters:
+\begin{itemize}
+  \item \texttt{SRC_URI} is the location of the archive containing the source files. It points to the popular PyPI Python Package Repository\footnote{\url{https://pypi.python.org/pypi}}. MD5 and SHA256 sums are also defined in order to detect data corruption.
+  \item \texttt{S} specifies the working folder.
+  \item \texttt{RDEPENDS} defines other Yocto recipes that the current one depends on.
+\end{itemize}
+
+\subsubsection{Kernel configuration}
+
+The default Linux kernel \texttt{.config} files contains only the minimum necessary options required to have a working system. This means that I had to modify this file in order to include driver support for BCM20702 and RT3070 chipsets, that provide Bluetooth and WiFi connectivity. The next steps describe this procedure:
+\begin{enumerate}
+  \item Run the \texttt{bitbake linux-yocto -c menuconfig} command and use \texttt{menuconfig} to modify the Kernel options.
+  \item Run the \texttt{bitbake linux-yocto -c diffconfig} command that will generate a configuration fragment with all the added options.
+  \item Create \texttt{linux_yocto_3.10.bbappend} that appends the file from the previous step to the default \texttt{.config} file.
+  \item Build the image containing the changes by running \texttt{bitbake core-image-lhac}.
+\end{enumerate}
+
+\subsubsection{Image configuration and generation}
+
+In order to define a system image, I created a recipe that specifies it, included below in \labelindexref{Listing}{lst:lhac-recipe}. \texttt{inherit core-image} means that it is based on a minimal Linux System Image. The \texttt{IMAGE_INSTALL} variable specifies which extra packages should added. They are packages necessary for running a WiFi hotspot and Python libraries that the application depends on. The following section will offer more details about them.
+
+\lstset{caption=core-image-lhac.bb Recipe for Generating a Linux System Image, label=lst:lhac-recipe}
+\lstinputlisting{src/code/build/core-image-lhac.bb}
+
+In order to generate the final system image, the \texttt{bitbake -c core-image-lhac} command must be run. This will generate 3 files:
+\begin{enumerate}
+  \item The Linux kernel exacutable file
+  \item A \textbf{.tar.bz2} archive containing the root filesystem.
+  \item A \textbf{.tgz} archive containing kernel modules.
+\end{enumerate}
+
+\section{Programming Environment}
+
+In the following section, I will motivate my choice of programming environment: programming language and libraries. I will do so by expanding on some of the design goals presented in \labelindexref{Section}{sec:design-goals}, particularly on extensibility, modularity and flexibility.
+
+\subsection{Python}
+
+Python\footnote{\url{https://www.python.org/}} is an interpreted, interactive, object-oriented programming language. It incorporates modern language features, such as modules, exceptions, dynamic typing, high level dynamic data types and classes. Python combines remarkable power with very clear syntax. It has interfaces to many system calls and libraries and is extensible in C or C++. Python is free and open source - it has been created and is constantly improved by a community of enthusiasts, as well as industry leaders. Finally, it is portable, being able to run on Linux, Mac and Windows.
+
+The excelent documentation\footnote{\url{https://docs.python.org/2.7/}} is another strong feature of Python. It is a great resource for beginners who want to learn the language. The API reference contains details about every module included in the Python standard library and offers clear, concise examples on how to use them.
+
+The application aims to implement multiple aspects of programming: network and wireless communication, data storage to a database, providing a REST API. Python is \textit{flexible} enough to support such tasks, thanks to the extensive standard library and the vast PyPI Package Repository\footnote{\url{https://pypi.python.org/pypi}}, which offers over 60000 software packages. It has clear syntax, great expressivity and language constructs that allow for elegant solutions to a wide variety of tasks.
+
+Being simple and easy to learn, it offers great \textit{extensibility}. Support for new sensor types and actions could also be added by inexperienced programmers, by following a well-defined interface that is simple and intuitive. Dynamic typing and high level dynamic data structures such as lists and dictionaries allow for the focus to be on implementing new functionality, rather than on managing memory. The great number of libraries simplify the addition of new communication protocols and functionalities, offering the ability of choosing the tool that best fits the task.
+
+Using classes, a clear separation between different modules of the application can be defined. This means that dependencies between them are kept to a minimum. Changes and improvements can be made without affecting other parts of the program. The \textit{modular} software architecture can be implemented in a clean and direct way, also allowing for further enhancements.
+
+One important choice that I had to make was whether to use Python 2 or Python 3. Python 3 was released in 2008 with a number of improvements that changed some of the core aspects of the language, compared to Python 2. This meant that a large number of the already available libraries had to be changed to support Python 3. Python 2 is still being maintained and improved, which means that the transition from version 2 to 3 is currently slow. Linux still uses Python 2 as a default and because some of the libraries that I will present in the following subsection haven't yet been ported, I decided to use Python version 2.7.
+
+\subsection{Libraries}
+
+Many of the features required for implementing the application are already available in the Python standard library. It offers mostly object-oriented APIs which are conveniently organised in modules.
+
+Threading suport, required for the process of data collection is already available in the standard library through the \texttt{threading} module. A \texttt{Thread} is created by passing the function to execute to it's constructor and it can be controlled using the \texttt{start()}, \texttt{stop()} and \texttt{isAlive()} methods.
+
+So is data storage in a database, using \texttt{sqlite}. It allows the creation of a serverless database, stored in a file. It provides \texttt{Connection} objects for managing the files and \texttt{Cursor} objects for executing queryies and retrieving values from tables.
+
+Communication with the WiFi sensors uses the object-oriented \texttt{socket} API. A \texttt{socket} object has methods: \texttt{bind()}, \texttt{listen()}, \texttt{accept()}, \texttt{connect()} that follow the POSIX socket API. This way, communication with the sensor boards is made using TCP streams or UDP datagrams.
+
+The following libraries are not part of the standard and were required in order to implement Bluetooth communication and the REST API.
+
+\subsubsection{PyBluez}
+
+PyBluez\footnote{\url{https://pypi.python.org/pypi/PyBluez/}} is an extension module that gives developers access to system Bluetooth resources. It provides and API for Bluetooth 2.0 and 3.0 communication using RFCOMM or L2CAP sockets and Bluetooth device descovery. I used PyBluez for comunicating with the RN42 sensor board. It provides 2 classes as follows:
+\begin{itemize}
+  \item \texttt{BluetoothSocket}. RFCOMM \texttt{BluetoothSocket} objects are very similar to TCP socket object and provide the same \texttt{bind()}, \texttt{listen()}, \texttt{accept()}, \texttt{connect()}, \texttt{send()} and \texttt{recv()} methods. One difference is that RFCOMM sockets only support a number of 30 ports.
+  \item \texttt{DeviceDescoverer} provides methods for discovering Bluetooth devices and services.
+\end{itemize}
+
+\subsubsection{PyGATT}
+
+PyGATT\footnote{\url{https://pypi.python.org/pypi/pygatt/1.0.1}} is a module that uses the GATT protocol supported by BLE devices. It works as a wrapper over the \texttt{gatttool} command, offering a Pythonic API. It has methods for discovering BLE devices and reading characteristic details and values. I used PyGATT for implementing communication with the RN4020 sensor board.
+
+\subsubsection{Flask}
+
+There are multiple Python frameworks for defining REST APIs (e.g. Django, Flask, Pyramid). Most of them are full-stack frameworks aimed at developing complex web applications. Because it must run on an embedded system, I needed one that is stable, resource efficient and has little overhead. Flask\footnote{\url{http://flask.pocoo.org/}} has all of these features. It is a micro web framework, aiming to keep the core simple but extensible. Flask also integrates debugging and unit-testing tools that make the development process simple and efficient.
+
+The REST API is consumed by a Javascript/HTML/CSS client running as a Web user interface in a browser. API requests are made using AJAX and the response is encoded in JSON objects. In order to keep a modular architecture, the client files are served by a server different from the one offering the REST API. This means that they have different domains. For security reasons, all Web browsers require the server of the REST API to implement a security mechanism called Cross-Origin Resource Sharing (CORS). Flask doesn't have core support for this protocol, but there is an extension called \texttt{Flask-cors} that offers it. Integrating it in my application was done in just 2 lines of code, as show in \labelindexref{Listing}{lst:flask-cors}.
+
+\lstset{language=Python,caption=Adding CORS support to a Flask application, label=lst:flask-cors}
+\begin{lstlisting}
+from flask.ext.cors import CORS
+
+cors = CORS(app)
+\end{lstlisting}
+
+

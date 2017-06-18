@@ -1,0 +1,15 @@
+\chapter{Conclusion and Further Work}
+
+\section{Conclusion}
+
+In this thesis I presented a system architecture for the Linux Home Automation Controller. The current implementation offers monitoring functionality. It allows the user to add and remove sensors from the system and keeps data measurement history that is displayed in descriptive charts. More specifically, temperature and light intensity can be monitored. 
+
+I proved that the Linux Home Automation Controller is \textit{extensible}, by integrating 4 different types of wireless sensor boards, that use two communication protocols: Bluetooth and WiFi. The REST API plays an important role in the \textit{modularity} and \textit{flexibility} of the design, by separating the user interface from the rest of the system. 
+
+Testing has shown that the project objectives have been achieved. The choice of Python, a high-level language has not affected the performance of the system, while facilitating a faster and more elegant development process. The proposed solution is a good competitor to existing Home Automation solutions, while providing a lower price point.
+
+\section{Further Work}
+
+The most important development is to complete the implementation of the proposed architecture by offering control functionality. Allowing the users to define smart automatic profiles would give them better control over their home environment.
+
+One other posibility would be to create a smartphone application that works as the user interface to the system. The REST API allows this to be done without having to make any modification to other components. A native application for Android or iOS has several advantages: more convenient to access by the user, better integration with the smartphone and more responsive. Most important, by using notifications, it would allow the implementation of alerts and status updates.

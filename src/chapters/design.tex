@@ -1,0 +1,124 @@
+\chapter{System and Application Design}
+
+In the previous chapter, I presented the motivation and objectives for a Linux Home Automation Controller application. To summarise, it should show the users a better picture of their home environment and give them the ability to adjust parameters using an automatic and adjustable mechanism. The system will focus on keeping costs to a minimum, targeting the growing demand in emerging markets. In the end, the combination of all the objectives should lead to the final ambition of increasing quality of life and energy efficiency. 
+
+In this chapter, I will expand the objectives into design goals that the system architecture should meet. Then I will provide a detailed overview of the overall design and individual components.
+
+\section{Design Goals}
+\label{sec:design-goals}
+
+Establishing design goals plays a double role in the process of building a software architecture. They provide a starting point for development, as well as serve as a validating mechanism for the finished product. The principles that I established for the Linux Home Automation Controller are as follows:
+
+\begin{itemize}
+
+\item \textbf{Extensible}. There are two aspects that should be taken in consideration, originating from the two types of end-user that the system targets. A scalable mechanism that include a small number of intuitive steps should allow non-technical costumer to extend their system with new sensor and controller devices. This mechanism should rely on devices that they already have available, such as smartphones, tablets, or personal computers. At the same time, enthusiast developers will have the option of adding their own device designs and wireless communication protocols by following a simple and clear interface.
+
+\item \textbf{Modular}. Each main component of the final system should have a specific and well defined role. Clear interfaces and low dependency between them will allow for changes and improvements to be made in order to account for new requirements or feature requests. For example, in case a Database Management System (DBMS) with better capacity or performance is required, it's integration should not affect other components.
+
+\item \textbf{Flexible}. One important purpose is to have a system that can adapt to technological advances and integrate new features easily. This means, for example, being able to easily incorporate new communication protocols, embedded systems, microcontroller sensor boards, with no effect on backwards compatibility.
+
+\end{itemize}
+
+With these goals established, in the following sections I will present an overview of the entire system and then I will describe the software architecture and how it integrates in the scheme.
+
+\section{System Overview}
+
+The Linux Home Automation Controller combines multiple software and hardware components that work together as an aggregate product that offers the user useful information and intelligent control over the home environment. Hardware includes microcontrollers, embedded systems and personal computing devices, the latter offering the user facing component of the software. \labelindexref{Figure}{img:arch-overview} shows an overview of the entire system.
+
+\fig[scale=0.69]{src/img/arch-overview.pdf}{img:arch-overview}{System Overview}
+
+\textbf{Wireless sensors} are small microcontroller-based boards that have analog and digital IO ports. They can read data parameters from the home environment(e.g. temperature, light intensity, air pressure) and use electrical relays to control home appliances such as: light bulbs, heating unit or door locks. The boards are usually battery-powered and have wireless interfaces (\textit{Bluetooth}, \textit{WiFi}, etc.) for communicating with a central node. This means that they can be placed in every room of a house. In order to demonstrate the \textit{extensibility} of the design, I decided to integrate 2 WiFi boards and 2 Bluetooth boards. A detailed description will be offered in \labelindexref{Section}{sec:wireless-sensor-boards}. 
+
+\textbf{RouterStation Pro} is an embedded system board which plays the role of a central node. It has a Linux operating system that allows it to run a wide variety of software and makes it easy to develop applications. \textit{WiFi} and \textit{Bluetooth} interfaces are available for wireless communication with the sensors. It is a great instrument for running and developing the software application. More details will be offered in \labelindexref{Section}{sec:routerstation}. It has great features while respecting the \textit{low-cost} objective of the project, having a price of \$80.
+
+The Web User Interface(\textbf{Web UI}) is the \textbf{user} facing component of the application. It can be accessed from any personal computing device by using a web browser, such as Chrome, Firefox or Internet Explorer and is available on the home network. Web pages with easy-to-use and intuitive components give the users control over the entire system. They can, for example, add new sensors to the system, view charts of parameter (e.g. temperature) history and define smart policies for controlling home appliances. By offering only the useful information and abstracting away implementation details, it contributes to the \textit{modularity} and \textit{flexibility} of the design.
+
+It can be seen that the system has many different components, both hardware and software. Therefore, it is very important to design a software architecture that will integrate everything in a final product that offers the user complete control.
+
+\section{Main Application Components}
+
+In this section, I will offer details on the main software components of the Linux Home Automation Controller application: the roles that they have, how they interact with each other and with the hardware boards. They are pictured in \labelindexref{Figure}{img:software-arch}. Solid arrows are used to represent the flow of data information (e.g. temperature values, on/off status) while dashed arrows are used for command and control interactions. It must be noted that this application will run on an embedded system with limited resources.
+
+\fig[scale=0.75]{src/img/software-architecture.pdf}{img:software-arch}{Home Automation Controller Application Architecture}
+
+\subsection{Device Modules}
+\label{sub-sec:device-modules-design}
+
+\textbf{Device Modules} are the application components that handle the communication with the wireless sensor boards, called \textbf{Devices}. There is one device module for each type of device. They implement the device-specific communication and control protocol, in order to be able to command them and collect data. For example, one device module could handle devices that send sensor data periodically inside an UDP packet over WiFi, or another one could use a text-based request and response protocol over Bluetooth to collect data and send commands.
+
+In order to keep a modular and extensible approach, all device modules will implement the same well-defined interface that abstracts away device-specific details. This interface offers the following options:
+
+\begin{itemize}
+
+  \item \textbf{Scan} does a protocol-specific search and offers a list of devices available nearby, that the system can \textit{connect} to.
+
+  \item \textbf{Connect} establishes a connection with an \textit{available} device. Once a device is connected, other actions can be performed on it.
+
+  \item \textbf{Disconnect} from a device.
+
+  \item \textbf{Connected Devices} offers a list of devices that are currently connected.
+
+  \item \textbf{Collect Data} uses the data storage component of the system to store current data values from the connected devices.
+
+  \item \textbf{Do Action} isues a command for a connected device. For example, a simple command of turning a light on, or a more complex one of maintaining a certain temperature level.
+
+\end{itemize}
+
+Because there are multiple device types, there are also more Device Modules in the system. The \textbf{Device Manager} handles all of these modules. It works as an interface for the REST API and controls the data collection process.
+
+\subsection{Database System}
+
+Measurement values must be stored in order to provide data history charts. The best tool for organising and storing these values is a \textbf{Database System}. It provides mechanisms for organising, storing and retrieving information.
+
+An outline of the table models required for the application is presented in \labelindexref{Figure}{img:db}:
+
+\begin{itemize}
+  \item \textbf{Device} table contains rows representing devices. A device is uniquely identified by the address that is used to communicate with it. A device name is first set up by the Device Module, but it can later be changed by the user.
+
+  \item \textbf{Data_values} holds the measurement data. Each row contains the value of the parameter, the timestamp and the id of the measurement unit.
+
+  \item \textbf{Data_units} contains measurement unit names.
+\end{itemize}
+
+The \textbf{Database} allows the other components of the application to access the stored information. The restricted environment currently requires a simple Database Management System (DBMS)\abbrev{DBMS}{Database Management System}. Because of the modularity of the system, if the need for a more complex DBMS arises, a new Database module could be developed without affecting any of the other application components.
+
+
+
+\fig[scale=0.9]{src/img/db3.pdf}{img:db}{Database Tables used by the application}
+
+
+\subsection{REST API}
+
+The \textbf{REST API} serves as a link between the Web UI and the other components. It offers an interface for managing and controlling the whole system that decouples the architecture, specifically the user interface from the elements that handle device communication and data storage. This plays an important role in achieving all of the design goals that were set in the previous section.
+
+Relying on Hypertext Transfer Protocol (HTTP), devices are defined as resources that can be operated upon using verbs(GET, POST, PUT, DELETE, etc).\abbrev{HTTP}{Hypertext Transfer Protocol} Device informations and measurement data are obtained through HTTP requests. The responses use the JSON format, which is a lightweight data-interchange format that is language independent.\abbrev{JSON}{JavaScript Object Notation} 
+
+Therefore, flexibility is offered in the development of the user interface. It only needs to act as a client for the REST API in order to be able to interact with the rest of the components. In the following subsection I will provide an example of a Web User Interface.
+
+\subsection{Web User Interface}
+\label{sub-sec:web-ui}
+
+The \textbf{Web User Interface (WebUI)} provides to user the visual controls for managing devices, data history and control profiles. It is organised in multiple Web pages that are accessed using a Web Browser. Mockups of these pages are presented in the following figures, while user stories that describe how a user can interact with them are offered in \labelindexref{Appendix}{app:user-stories}.
+
+\fig[scale=0.35]{src/img/Login-page.pdf}{img:login.pdf}{Mockup of the Login page}
+
+A user must authenticate in order to be able to use the WebUI. When connecting, they are offered a log-in form like in \labelindexref{Figure}{img:login.pdf}. Only if they provide a correct user and password combination, they are authorised to access all the other pages. An authenticated user has rights over all the resources of the interface. A role-based user-policy is not necessary in this application because it is aimed at offering all the members of a family the same control over their home. This security measure is aimed at denying access to persons outside the family.
+
+\fig[scale=0.4]{src/img/devices.pdf}{img:devices.pdf}{Mockup of the Devices page}
+
+The \textbf{Details} page in \labelindexref{Figure}{img:devices.pdf} shows two tables that contain \textit{available} and \textit{connected} devices. Clicking the \textit{Details} button will open a new window like in \labelindexref{Figure}{img:device-details.pdf} that offers more informations about a device.
+
+\fig[scale=0.4]{src/img/device-details.pdf}{img:device-details.pdf}{Mockup of the Device Details page}
+
+\fig[scale=0.4]{src/img/data-history.pdf}{img:data-history.pdf}{Mockup of the Measurement Data page}
+
+The \textbf{Measurement Data} page in \labelindexref{Figure}{img:data-history.pdf} displays data history from each device using charts. The user can choose the period of time that he wants displayed and can compare the values from more devices. This, for example, helps finding differences between different rooms.
+
+\fig[scale=0.4]{src/img/profiles-management.pdf}{img:profiles-management.pdf}{Mockup of the Profile Management page}
+
+Using \textit{profiles}, the user can create actions for smart control of the home environment. A profile allows the user to define schedules for environment states, depending on time or day. For example they can program the application to keep the house warm when they come home from work and have heating off when nobody is at home or turn off all the lights after an hour when everyone is asleep. This would reduce energy consumption and costs. More profiles can be defined for a device. Only one profile can be active for a device at a given time. They can be managed using the \textbf{Profile Management} pages in figures \labelindexref{Figure}{img:profiles-management.pdf} and \labelindexref{Figure}{img:profile-edit.pdf}.
+
+
+\fig[scale=0.4]{src/img/profile-edit.pdf}{img:profile-edit.pdf}{Mockup of the Profile Edit page}
+
+The following two chapters will offer details about the implementation of a system based on this architecture. It will have temperature monitoring and control as an example use case. \labelindexref{Chapter}{ch:environment} will describe the hardware and software environment in which the Linux Home Automation Controller application will run and \labelindexref{Chapter}{ch:implementation} will present implementation details of the software components. 
